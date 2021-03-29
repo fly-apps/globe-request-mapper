@@ -17,7 +17,7 @@ defmodule GlobeRequestMapperWeb.Router do
 
     cond do
       flyClientIps != [] -> Plug.Conn.put_session(conn, :remote_ip, hd(flyClientIps))
-      xForwardForIps != [] -> Plug.Conn.put_session(conn, :remote_ip, hd(xForwardForIps))
+      xForwardForIps != [] -> Plug.Conn.put_session(conn, :remote_ip, hd(xForwardForIps) |> String.split(",") |> Enum.at(0))
       Application.get_env(:globe_request_mapper, :env) == :dev
         -> Plug.Conn.put_session(conn, :remote_ip, System.get_env("DEV_IP"))
     end
