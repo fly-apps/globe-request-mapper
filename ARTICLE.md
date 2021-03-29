@@ -35,7 +35,7 @@ defmodule GlobeRequestMapperWeb.GlobeLive do
     PubSub.subscribe(GlobeRequestMapper.PubSub, @node_topic)
     # Listens for requests
     PubSub.subscribe(GlobeRequestMapper.PubSub, @requests_topic)
-    
+
     {:ok, socket}
   end
 end
@@ -52,6 +52,7 @@ The `mount` function is called everytime a socket connects. The LiveView then au
             <div id="globe" phx-update="ignore"></div>
         </div>
         <p>* Blue box represents node</p>
+        <p>* Red box represents your approx position</p>
         <hr />
         <div>
             <button phx-click="request">Send Request</button>
@@ -201,7 +202,7 @@ def handle_info(:update_nodes, socket) do
 end
 ```
 
-The only thing left server side is to handle requests. Create the file `globe_request_mapper/request.ex`.
+The only thing left server side is to handle requests. Create the file `globe_request_mapper/request.ex`. We cache the coordinate results in Redis, with Fly it is automatically included in each node. You can access Redis through `FLY_REDIS_CACHE_URL`.
 ```elixir
 def topic do
   "requests"
@@ -220,11 +221,26 @@ def add_request(ip, to_coords) do
 end
 
 def get_ip_coords(ip) do
+  case Redix.pipeline(:redix_conn, [["GET", "#{ip}-lat"], ["GET", "#{ip}-long"]]) do
+     {:ok, [nil, nil]} -> fetch_ip_coords(ip)
+     {:ok, coords} ->
+       coords
+         |> Enum.with_index()
+         |> Map.new(fn {v, idx} ->
+               case idx do
+                 0 -> {:lat, String.to_float(v)}
+                 1 -> {:long, String.to_float(v)}
+               end
+            end)
+  end
+end
+
+defp fetch_ip_coords(ip) do
   HTTPoison.start
 
   case HTTPoison.get("http://ip-api.com/json/#{ip}") do
     {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-      body
+      coords = body
         |> Jason.decode!
         |> Map.take(["lat", "lon"])
         |> Map.new(fn {k, v} ->
@@ -232,7 +248,16 @@ def get_ip_coords(ip) do
               "lat" -> {:lat, v}
               "lon" -> {:long, v}
             end
-           end)
+          end)
+
+      # GEOADD disabled on Fly
+      Redix.pipeline(:redix_conn, [
+        ["SET", "#{ip}-lat", Float.to_string(coords.lat)], ["SET", "#{ip}-long", Float.to_string(coords.long)]
+      ])
+
+      coords
+    # In production you probably want something better
+    {:error, _} -> %{lat: nil, long: nil}
   end
 end
 ```
@@ -344,6 +369,7 @@ Hooks.Globe = {
         this.handleEvent("request", this.request)
     },
     myCoords: ({coords}) => {
+        globe.plotMyCoordinates(coords);
         globe.focusCamera(coords);
         globe.render();
     },
