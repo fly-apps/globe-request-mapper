@@ -1,0 +1,34 @@
+<div class="container">
+    <div class="globe-wrapper">
+        <div id="globe-hook" phx-hook="Globe" phx-update="ignore">
+            <div id="globe" phx-update="ignore"></div>
+        </div>
+        <p>* Blue box represents node</p>
+        <p>* Red box represents your approx position</p>
+        <hr />
+        <div>
+            <button phx-click="request">Send Request</button>
+        </div>
+    </div>
+    <div class="actions-wrapper">
+        <table>
+            <tr>
+                <th>Region</th>
+                <th>Action</th>
+            </tr>
+            <%= for dcn <- @data_centers do %>
+            <tr>
+                <th class="region">
+                    <img src="https://fly.io/ui/images/<%= dcn.code %>.svg" />
+                    <%= dcn.code %>
+                </th>
+                <td>
+                    <button class="request-button" phx-click="request" phx-value-node="<%= dcn.code %>">
+                        Request
+                    </button>
+                </td>
+            </tr>
+            <% end %>
+        </table>
+    </div>
+</div>
