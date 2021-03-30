@@ -28,6 +28,8 @@ defmodule GlobeRequestMapper.Request do
                    1 -> {:long, String.to_float(v)}
                  end
               end)
+      {:error, %Redix.ConnectionError{reason: reason}} when reason in [:disconnected, :closed]
+        -> fetch_ip_coords(ip)
     end
   end
 
