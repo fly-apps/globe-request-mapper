@@ -10,7 +10,7 @@ Phoenix is a framework for Elixir which makes building highly scalable, distribu
 
 The overview is that we will plot the Phoenix nodes on the globe as blue boxes, then whenever a node recieves a request it broadcasts it to the other nodes. They all then emit an event to the clients that tells the globes being viewed to update. The event contains the node's coordinates and the approximate coordinates of the requester's IP.
 
-## Phoenix
+### Phoenix
 
 When creating the Phoenix project, you can use `mix phx.new globe_request_mapper --live --no-ecto` to setup a Phoenix [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) project. LiveView has many tools that allow for easy development of interactive webpages, we will explore some of them.
 
@@ -49,7 +49,7 @@ The `mount` function is called everytime a socket connects. The LiveView then au
         <!-- phx-update tells Phoenix not to update this bit when it recieves an event -->
         <div id="globe-hook" phx-hook="Globe" phx-update="ignore">
             <!-- Where we mount the Three.js globe -->
-            <div id="globe" phx-update="ignore"></div>
+            <div id="globe"></div>
         </div>
         <p>* Blue box represents node</p>
         <p>* Red box represents your approx position</p>
@@ -82,7 +82,7 @@ def fly_region do
 end
 
 def fly_api_key do
-  System.get_env!("FLY_API_KEY")
+  System.get_env("FLY_API_KEY")
 end
 
 def topic do
