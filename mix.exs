@@ -47,8 +47,6 @@ defmodule GlobeRequestMapper.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:libcluster, "~> 3.2.2"},
       {:httpoison, "~> 1.8"},
-      {:redix, ">= 0.0.0"},
-      {:castore, ">= 0.0.0"}
     ]
   end
 

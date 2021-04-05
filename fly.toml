@@ -1,6 +1,6 @@
-# fly.toml file generated for globe-request-mapper on 2021-03-29T00:57:10-04:00
+# fly.toml file generated for request-globe on 2021-03-29T00:57:10-04:00
 
-app = "globe-request-mapper"
+app = "request-globe"
 
 kill_signal = "SIGINT"
 kill_timeout = 5
