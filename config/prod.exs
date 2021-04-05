@@ -12,7 +12,7 @@ use Mix.Config
 config :global_request_mapper, GlobeRequestMapperWeb.Endpoint,
        load_from_system_env: true,
        http: [port: {:system, "PORT"}],
-       url: [scheme: "https", host: "globe-request-mapper.fly.dev", port: 443],
+       url: [scheme: "https", host: "request-globe.fly.dev", port: 443],
        force_ssl: [rewrite_on: [:x_forwarded_proto]],
        cache_static_manifest: "priv/static/cache_manifest.json",
        secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")

@@ -22,7 +22,6 @@ defmodule GlobeRequestMapper.NodeManager do
   end
 
   def init(state) do
-    PubSub.broadcast(GlobeRequestMapper.PubSub, topic(), :update_nodes)
     :ok = :net_kernel.monitor_nodes(true)
     {:ok, state}
   end
@@ -32,7 +31,10 @@ defmodule GlobeRequestMapper.NodeManager do
   end
 
   def get_data_centers do
-    [get_node_coords()] ++ (:rpc.multicall(Node.list(), GlobeRequestMapper.NodeManager, :get_node_coords, []) |> elem(0))
+    [get_node_coords()] ++ (:rpc.multicall(Node.list(), GlobeRequestMapper.NodeManager, :get_node_coords, [])
+                            |> elem(0))
+    |> Enum.filter(&Map.has_key?(&1, :code))
+    |> Enum.uniq_by(&Map.get(&1, :code))
   end
 
   def handle_call(:node_coords, _from, state) do
@@ -40,11 +42,7 @@ defmodule GlobeRequestMapper.NodeManager do
   end
 
   def handle_info({event, _node}, state) when event in [:nodeup, :nodedown] do
-    case event do
-      :nodedown -> PubSub.local_broadcast(GlobeRequestMapper.PubSub, topic(), :update_nodes)
-      _ -> :ok
-    end
-
+    PubSub.local_broadcast(GlobeRequestMapper.PubSub, topic(), :update_nodes)
     {:noreply, state}
   end
 

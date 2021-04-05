@@ -1,9 +1,25 @@
 defmodule GlobeRequestMapper.Request do
+  use GenServer
+
   alias Phoenix.PubSub
   alias GlobeRequestMapper.NodeManager
 
+  @name :request_server
+
   def topic do
     "requests"
+  end
+
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, %{}, name: @name)
+  end
+
+  def init(coordinates) do
+    {:ok, coordinates}
+  end
+
+  def get_ip_coords(ip) do
+    GenServer.call @name, {:get_coordinates, ip}
   end
 
   def add_request(ip) do
@@ -16,46 +32,31 @@ defmodule GlobeRequestMapper.Request do
     PubSub.broadcast(GlobeRequestMapper.PubSub, topic(), {:request, request})
   end
 
-  def get_ip_coords(ip) do
-    case Redix.pipeline(:redix_conn, [["GET", "#{ip}-lat"], ["GET", "#{ip}-long"]]) do
-       {:ok, [nil, nil]} -> fetch_ip_coords(ip)
-       {:ok, coords} ->
-         coords
-           |> Enum.with_index()
-           |> Map.new(fn {v, idx} ->
-                 case idx do
-                   0 -> {:lat, String.to_float(v)}
-                   1 -> {:long, String.to_float(v)}
-                 end
-              end)
-      {:error, %Redix.ConnectionError{reason: reason}} when reason in [:disconnected, :closed]
-        -> fetch_ip_coords(ip)
+  def handle_call({:get_coordinates, ip}, _from, coordinates) do
+    case Map.get(coordinates, ip) do
+      nil -> fetch_ip_coords(ip, coordinates)
+      coords -> {:reply, coords, coordinates}
     end
   end
 
-  defp fetch_ip_coords(ip) do
+  defp fetch_ip_coords(ip, coordinates) do
     HTTPoison.start
 
     case HTTPoison.get("http://ip-api.com/json/#{ip}") do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         coords = body
-          |> Jason.decode!
-          |> Map.take(["lat", "lon"])
-          |> Map.new(fn {k, v} ->
-              case k do
-                "lat" -> {:lat, v}
-                "lon" -> {:long, v}
-              end
-            end)
+                 |> Jason.decode!
+                 |> Map.take(["lat", "lon"])
+                 |> Map.new(fn {k, v} ->
+          case k do
+            "lat" -> {:lat, v}
+            "lon" -> {:long, v}
+          end
+        end)
+        {:reply, coords, Map.put(coordinates, ip, coords)}
 
-        # GEOADD disabled on Fly
-        Redix.pipeline(:redix_conn, [
-          ["SET", "#{ip}-lat", Float.to_string(coords.lat)], ["SET", "#{ip}-long", Float.to_string(coords.long)]
-        ])
-
-        coords
       # In production you probably want something better
-      {:error, _} -> %{lat: nil, long: nil}
+      {:error, _} -> {:reply, %{lat: nil, long: nil}, coordinates}
     end
   end
 end
