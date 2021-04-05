@@ -17,11 +17,11 @@ Elixir is based off of Erlang meaning we can use all of the functionality that [
 1. When a node join or leaves
 2. When someone views the globe
 
-Through the magic of OTP applications this is extremely easy to do. To be notified when a node joins or leaves, the function [:net_kernel.monitor_nodes](https://erlang.org/doc/man/net_kernel.html#monitor_nodes-1) exists. When someone views the globe is even easier to detect, it's just whenever someone visits the route the globe is on in your Phoenix application. Whenever either of these things happen, just broadcast the change to all the clients with Phoenix's built in pub/sub. *That's it.* 
+Through the use of OTP applications this is extremely easy to do. To be notified when a node joins or leaves, the function [:net_kernel.monitor_nodes](https://erlang.org/doc/man/net_kernel.html#monitor_nodes-1) exists. When someone views the globe is even easier to detect, it's just whenever someone visits the route the globe is on in your Phoenix application. Whenever either of these things happen, just broadcast the change to all the clients with Phoenix's built in pub/sub. *That's it.* 
 
 ### What about scaling?
 
-After you write your shinny new Elixir app you'll start thinking about distribution and scaling. This is where [libcluster](https://github.com/bitwalker/libcluster) comes into play. Libcluster is a library that provides as the description describes "automatic cluster formation/healing for Elixir applications." It provides several clustering strategies such as Kubernetes and DNS polling out of the box, or you can write your own.
+After you write your shinny new Elixir app you'll start thinking about distribution and scaling. This is where [libcluster](https://github.com/bitwalker/libcluster) comes into play. Libcluster is a library that provides as the description describes "automatic cluster formation/healing for Elixir applications." It gives several clustering strategies such as Kubernetes and DNS polling out of the box, or you can write your own.
 
 Depending on your hosting provider you might be able to have them handle adding and removing nodes. After deploying the globe app to Fly, I'm able to take advantage of the autoscaling feature that Fly offers. This means that when there's a lot of traffic people will see nodes joining the cluster and popping up on the globe, then when the traffic decreases nodes are taken away.
 
@@ -40,7 +40,7 @@ The DNS clustering strategy on a private network gives a layer of security, only
 
 ### How do the nodes communicate?
 
-Whenever a node joins all of the globes need to recieve the coordinates of it in order to plot it. This is common functionality and there are many solutions to it, Elixir School provides a [great overview](https://elixirschool.com/en/lessons/advanced/otp-distribution/) of some of them. One of the easiests methods is the built in [RPC functionality](https://erlang.org/doc/man/rpc.html) Erlang has. The RPC function `multicall` is given a list of nodes, then it calls a function on the given nodes.
+Whenever a node joins all of the globes need to recieve the coordinates of it in order to plot it. This is common functionality and there are many solutions to it, Elixir School has a [great overview](https://elixirschool.com/en/lessons/advanced/otp-distribution/) of some of them. One of the easiests methods is the built in [RPC functionality](https://erlang.org/doc/man/rpc.html) Erlang has. The RPC function `multicall` is given a list of nodes, then it calls a function on the given nodes.
 
 Whenever a node joins the cluster it broadcasts a join event. All of the nodes then use `multicall` to call a function on all of the nodes they are connected. This function returns the coordinates of node. Now each node can pass the coordinates to all of the clients connected to it.
 
